@@ -1,22 +1,22 @@
-# Cray provides SUNDIALS (including CVODE) as part of their "Third Party
-# Scientific Library" system module "cray-tpsl". If the module is loaded, just
-# use that version of SUNDIALS. Otherwise, look for a home-cooked version.
-
+# Add appropriate CVODE (SUNDIALS) includes and libraries
+# CVODE_DIR can be either the SUNDIALS install root (with include/, fortran/, lib/)
+# or the fortran subdir (with .mod files; parent has include/ and lib/)
 CPPFLAGS += -DUSE_CVODE
-include $(AMREX_HOME)/Src/Extern/CVODE/Make.package
 
-ifeq ($(findstring CRAY_TPSL, $(PE_PRODUCT_LIST)), CRAY_TPSL)
-  $(info Found Cray TPSL)
-  INCLUDE_LOCATIONS += $(CRAY_TPSL_PREFIX_DIR)
-  # If you loaded the cray-tpsl module, chances are you meant to use the Cray
-  # version of SUNDIALS, even if you have CVODE_LIB_DIR defined.
-  CVODE_LIB_DIR := $(CRAY_TPSL_PREFIX_DIR)/lib
+ifneq ($(strip $(CVODE_DIR)),)
+  # Detect: if fsundials_core_mod.mod exists in CVODE_DIR, it's the fortran dir
+  ifneq (,$(wildcard $(CVODE_DIR)/fsundials_core_mod.mod))
+    SUNDIALS_FORTRAN := $(CVODE_DIR)
+    SUNDIALS_ROOT := $(dir $(CVODE_DIR))
+  else
+    SUNDIALS_ROOT := $(CVODE_DIR)
+    SUNDIALS_FORTRAN := $(CVODE_DIR)/fortran
+  endif
+  INCLUDE_LOCATIONS += $(SUNDIALS_ROOT)/include
+  INCLUDE_LOCATIONS += $(SUNDIALS_FORTRAN)
+  LIBRARY_LOCATIONS += $(SUNDIALS_ROOT)/lib
+  # Fortran interface libs (for Fortran apps like homogeneous_reactor) + C libs
+  LIBRARIES += -lsundials_fcvode_mod -lsundials_fsunlinsoldense_mod -lsundials_fsunmatrixdense_mod -lsundials_fnvecserial_mod -lsundials_fcore_mod -lsundials_cvode -lsundials_nvecserial -lsundials_sunmatrixdense -lsundials_sunlinsoldense -lsundials_core
 else
-  CVODE_LIB_DIR ?= $(HOME)/cvode/lib
+  $(error CVODE_DIR not set. Install SUNDIALS (brew install sundials) and run: make CVODE_DIR=$$(brew --prefix sundials))
 endif
-
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/CVODE
-VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/CVODE
-
-LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_cvode
-LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_nvecserial

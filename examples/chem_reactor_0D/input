@@ -1,0 +1,19 @@
+# chem_reactor_0D input
+
+# Type of reactor: isobar or isochor
+Reactor : isobar 
+
+# Option 1: Per-species Initial Y (sum must be 1.0)
+#Initial Y CH4 : 0.05
+#Initial Y O2 : 0.2
+#Initial Y N2 : 0.75
+
+# # Option 2: Fuel + Equivalence ratio (standard air: N2=0.79, O2=0.21 mole frac)
+Fuel : CH4
+Equivalence ratio : 1.0
+
+Temperature : 1200.0
+Pressure : 100000.0
+End time : 0.1
+Time step : 1e-5
+Output file : results.out

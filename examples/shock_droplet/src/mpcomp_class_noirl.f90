@@ -547,7 +547,7 @@ contains
          end if
          ! Z flux
          if (maxval(this%iSL(i,j,k-1:k)).gt.0) then
-            ! Construct and project face
+            ! Construct and project face - ordering looks wrong!
             face(:,1)=[this%cfg%x(i+1),this%cfg%y(j  ),this%cfg%z(k)]; face(:,5)=project(face(:,1),-dt)
             face(:,2)=[this%cfg%x(i  ),this%cfg%y(j  ),this%cfg%z(k)]; face(:,6)=project(face(:,2),-dt)
             face(:,3)=[this%cfg%x(i  ),this%cfg%y(j+1),this%cfg%z(k)]; face(:,7)=project(face(:,3),-dt)
@@ -555,7 +555,7 @@ contains
             call volume_correct_z(-W(i,j,k)*dt*this%dx*this%dy)
             ! Cut each tet recursively and calculate flux
             kflux=merge(k-1,k,W(i,j,k).ge.0.0_WP)
-            do n=1,6
+            do n=1,8
                ! Build tet and corresponding indices
                do nn=1,4
                   tetra(:,nn)=face(:,tet_map(nn,n))
@@ -573,132 +573,132 @@ contains
             SLQz(i,j,k,:)=SLQz(i,j,k,:)/(dt*this%dx*this%dy)
          end if
          cycle
-         ! X flux
-         if (maxval(this%iSL(i-1:i,j,k)).gt.0) then
-            ! Construct and project face
-            face(:,1)=[this%cfg%x(i  ),this%cfg%y(j  ),this%cfg%z(k+1)]; face(:,5)=project(face(:,1),-dt)
-            face(:,2)=[this%cfg%x(i  ),this%cfg%y(j  ),this%cfg%z(k  )]; face(:,6)=project(face(:,2),-dt)
-            face(:,3)=[this%cfg%x(i  ),this%cfg%y(j+1),this%cfg%z(k  )]; face(:,7)=project(face(:,3),-dt)
-            face(:,4)=[this%cfg%x(i  ),this%cfg%y(j+1),this%cfg%z(k+1)]; face(:,8)=project(face(:,4),-dt)
-            face(:,9)=0.25_WP*[sum(face(1,1:4)),sum(face(2,1:4)),sum(face(3,1:4))]; face(:,9)=project(face(:,9),-dt)
-            ! Form flux polyhedron
-            call construct(flux_polyhedron,face)
-            ! Add solenoidal correction
-            call adjustCapToMatchVolume(flux_polyhedron,U(i,j,k)*dt*this%dy*this%dz)
-            ! Build detailed geometric flux
-            call getMoments(flux_polyhedron,this%localized_separator_link(i,j,k),detailed_face_flux)
-            ! Traverse current detailed face flux and increment fluxes
-            !fluxy1=[SLVx(i,j,k,:),SLQx(i,j,k,1:4),SLPx(i,j,k,:)]; SLVx(i,j,k,:)=0.0_WP; SLQx(i,j,k,:)=0.0_WP; SLPx(i,j,k,:)=0.0_WP
-            do n=0,getSize(detailed_face_flux)-1
-               ! Get cell index
-               ind=this%cfg%get_ijk_from_lexico(getTagForIndex(detailed_face_flux,n))
-               ! Get separated volume moments
-               call getSepVMAtIndex(detailed_face_flux,n,my_SepVM)
-               ! Extract volume and mass data
-               Lvol=getVolume(my_SepVM,0); Lbar=getCentroid(my_SepVM,0); Lmass=Lvol*this%RHOLold(ind(1),ind(2),ind(3))
-               Gvol=getVolume(my_SepVM,1); Gbar=getCentroid(my_SepVM,1); Gmass=Gvol*this%RHOGold(ind(1),ind(2),ind(3))
-               ! Increment volume flux
-               SLVx(i,j,k,:)=SLVx(i,j,k,:)-[Lvol,Gvol,Lbar,Gbar]
-               ! Increment conserved variable flux
-               SLQx(i,j,k,:)=SLQx(i,j,k,:)-[Lmass,Gmass,Lmass*this%ILold(ind(1),ind(2),ind(3)),Gmass*this%IGold(ind(1),ind(2),ind(3)),0.0_WP,0.0_WP,0.0_WP]
-               ! Increment pressure flux
-               SLPx(i,j,k,:)=SLPx(i,j,k,:)-[Lvol*this%PLold(ind(1),ind(2),ind(3)),Gvol*this%PGold(ind(1),ind(2),ind(3))]
-            end do
-            SLQx(i,j,k,:)=SLQx(i,j,k,:)/(dt*this%dy*this%dz)
-            !fluxy2=[SLVx(i,j,k,:),SLQx(i,j,k,1:4),SLPx(i,j,k,:)]
-            !if (maxval(abs(fluxy1-fluxy2)).gt.1.0e-9_WP) then
-            !   print*,'crapx - ijk',i,j,k
-            !   print*,'crapx - dif',abs(fluxy1-fluxy2)
-            !   print*,'crapx - nga',fluxy1
-            !   print*,'crapx - irl',fluxy2
-            !end if
-            ! Clear detailed flux
-            call clear(detailed_face_flux)
-         end if
-         ! Y flux
-         if (maxval(this%iSL(i,j-1:j,k)).gt.0) then
-            ! Construct and project face
-            face(:,1)=[this%cfg%x(i+1),this%cfg%y(j  ),this%cfg%z(k  )]; face(:,5)=project(face(:,1),-dt)
-            face(:,2)=[this%cfg%x(i  ),this%cfg%y(j  ),this%cfg%z(k  )]; face(:,6)=project(face(:,2),-dt)
-            face(:,3)=[this%cfg%x(i  ),this%cfg%y(j  ),this%cfg%z(k+1)]; face(:,7)=project(face(:,3),-dt)
-            face(:,4)=[this%cfg%x(i+1),this%cfg%y(j  ),this%cfg%z(k+1)]; face(:,8)=project(face(:,4),-dt)
-            face(:,9)=0.25_WP*[sum(face(1,1:4)),sum(face(2,1:4)),sum(face(3,1:4))]; face(:,9)=project(face(:,9),-dt)
-            ! Form flux polyhedron
-            call construct(flux_polyhedron,face)
-            ! Add solenoidal correction
-            call adjustCapToMatchVolume(flux_polyhedron,V(i,j,k)*dt*this%dz*this%dx)
-            ! Build detailed geometric flux
-            call getMoments(flux_polyhedron,this%localized_separator_link(i,j,k),detailed_face_flux)
-            ! Traverse current detailed face flux and increment fluxes
-            !fluxy1=[SLVy(i,j,k,:),SLQy(i,j,k,1:4),SLPy(i,j,k,:)]; SLVy(i,j,k,:)=0.0_WP; SLQy(i,j,k,:)=0.0_WP; SLPy(i,j,k,:)=0.0_WP
-            do n=0,getSize(detailed_face_flux)-1
-               ! Get cell index
-               ind=this%cfg%get_ijk_from_lexico(getTagForIndex(detailed_face_flux,n))
-               ! Get separated volume moments
-               call getSepVMAtIndex(detailed_face_flux,n,my_SepVM)
-               ! Extract volume and mass data
-               Lvol=getVolume(my_SepVM,0); Lbar=getCentroid(my_SepVM,0); Lmass=Lvol*this%RHOLold(ind(1),ind(2),ind(3))
-               Gvol=getVolume(my_SepVM,1); Gbar=getCentroid(my_SepVM,1); Gmass=Gvol*this%RHOGold(ind(1),ind(2),ind(3))
-               ! Increment volume flux
-               SLVy(i,j,k,:)=SLVy(i,j,k,:)-[Lvol,Gvol,Lbar,Gbar]
-               ! Increment conserved variable flux
-               SLQy(i,j,k,:)=SLQy(i,j,k,:)-[Lmass,Gmass,Lmass*this%ILold(ind(1),ind(2),ind(3)),Gmass*this%IGold(ind(1),ind(2),ind(3)),0.0_WP,0.0_WP,0.0_WP]
-               ! Increment pressure flux
-               SLPy(i,j,k,:)=SLPy(i,j,k,:)-[Lvol*this%PLold(ind(1),ind(2),ind(3)),Gvol*this%PGold(ind(1),ind(2),ind(3))]
-            end do
-            SLQy(i,j,k,:)=SLQy(i,j,k,:)/(dt*this%dz*this%dx)
-            !fluxy2=[SLVy(i,j,k,:),SLQy(i,j,k,1:4),SLPy(i,j,k,:)]
-            !if (maxval(abs(fluxy1-fluxy2)).gt.1.0e-9_WP) then
-            !   print*,'crapy - ijk',i,j,k
-            !   print*,'crapy - dif',abs(fluxy1-fluxy2)
-            !   print*,'crapy - nga',fluxy1
-            !   print*,'crapy - irl',fluxy2
-            !end if
-            ! Clear detailed flux
-            call clear(detailed_face_flux)
-         end if
-         ! Z flux
-         if (maxval(this%iSL(i,j,k-1:k)).gt.0) then
-            ! Construct and project face
-            face(:,1)=[this%cfg%x(i  ),this%cfg%y(j+1),this%cfg%z(k  )]; face(:,5)=project(face(:,1),-dt)
-            face(:,2)=[this%cfg%x(i  ),this%cfg%y(j  ),this%cfg%z(k  )]; face(:,6)=project(face(:,2),-dt)
-            face(:,3)=[this%cfg%x(i+1),this%cfg%y(j  ),this%cfg%z(k  )]; face(:,7)=project(face(:,3),-dt)
-            face(:,4)=[this%cfg%x(i+1),this%cfg%y(j+1),this%cfg%z(k  )]; face(:,8)=project(face(:,4),-dt)
-            face(:,9)=0.25_WP*[sum(face(1,1:4)),sum(face(2,1:4)),sum(face(3,1:4))]; face(:,9)=project(face(:,9),-dt)
-            ! Form flux polyhedron
-            call construct(flux_polyhedron,face)
-            ! Add solenoidal correction
-            call adjustCapToMatchVolume(flux_polyhedron,W(i,j,k)*dt*this%dx*this%dy)
-            ! Build detailed geometric flux
-            call getMoments(flux_polyhedron,this%localized_separator_link(i,j,k),detailed_face_flux)
-            ! Traverse current detailed face flux and increment fluxes
-            !fluxy1=[SLVz(i,j,k,:),SLQz(i,j,k,1:4),SLPz(i,j,k,:)]; SLVz(i,j,k,:)=0.0_WP; SLQz(i,j,k,:)=0.0_WP; SLPz(i,j,k,:)=0.0_WP
-            do n=0,getSize(detailed_face_flux)-1
-               ! Get cell index
-               ind=this%cfg%get_ijk_from_lexico(getTagForIndex(detailed_face_flux,n))
-               ! Get separated volume moments
-               call getSepVMAtIndex(detailed_face_flux,n,my_SepVM)
-               ! Extract volume and mass data
-               Lvol=getVolume(my_SepVM,0); Lbar=getCentroid(my_SepVM,0); Lmass=Lvol*this%RHOLold(ind(1),ind(2),ind(3))
-               Gvol=getVolume(my_SepVM,1); Gbar=getCentroid(my_SepVM,1); Gmass=Gvol*this%RHOGold(ind(1),ind(2),ind(3))
-               ! Increment volume flux
-               SLVz(i,j,k,:)=SLVz(i,j,k,:)-[Lvol,Gvol,Lbar,Gbar]
-               ! Increment conserved variable flux
-               SLQz(i,j,k,:)=SLQz(i,j,k,:)-[Lmass,Gmass,Lmass*this%ILold(ind(1),ind(2),ind(3)),Gmass*this%IGold(ind(1),ind(2),ind(3)),0.0_WP,0.0_WP,0.0_WP]
-               ! Increment pressure flux
-               SLPz(i,j,k,:)=SLPz(i,j,k,:)-[Lvol*this%PLold(ind(1),ind(2),ind(3)),Gvol*this%PGold(ind(1),ind(2),ind(3))]
-            end do
-            SLQz(i,j,k,:)=SLQz(i,j,k,:)/(dt*this%dx*this%dy)
-            !fluxy2=[SLVz(i,j,k,:),SLQz(i,j,k,1:4),SLPz(i,j,k,:)]
-            !if (maxval(abs(fluxy1-fluxy2)).gt.1.0e-9_WP) then
-            !   print*,'crapz - ijk',i,j,k
-            !   print*,'crapz - dif',abs(fluxy1-fluxy2)
-            !   print*,'crapz - nga',fluxy1
-            !   print*,'crapz - irl',fluxy2
-            !end if
-            ! Clear detailed flux
-            call clear(detailed_face_flux)
-         end if
+         ! ! X flux
+         ! if (maxval(this%iSL(i-1:i,j,k)).gt.0) then
+         !    ! Construct and project face
+         !    face(:,1)=[this%cfg%x(i  ),this%cfg%y(j  ),this%cfg%z(k+1)]; face(:,5)=project(face(:,1),-dt)
+         !    face(:,2)=[this%cfg%x(i  ),this%cfg%y(j  ),this%cfg%z(k  )]; face(:,6)=project(face(:,2),-dt)
+         !    face(:,3)=[this%cfg%x(i  ),this%cfg%y(j+1),this%cfg%z(k  )]; face(:,7)=project(face(:,3),-dt)
+         !    face(:,4)=[this%cfg%x(i  ),this%cfg%y(j+1),this%cfg%z(k+1)]; face(:,8)=project(face(:,4),-dt)
+         !    face(:,9)=0.25_WP*[sum(face(1,1:4)),sum(face(2,1:4)),sum(face(3,1:4))]; face(:,9)=project(face(:,9),-dt)
+         !    ! Form flux polyhedron
+         !    call construct(flux_polyhedron,face)
+         !    ! Add solenoidal correction
+         !    call adjustCapToMatchVolume(flux_polyhedron,U(i,j,k)*dt*this%dy*this%dz)
+         !    ! Build detailed geometric flux
+         !    call getMoments(flux_polyhedron,this%localized_separator_link(i,j,k),detailed_face_flux)
+         !    ! Traverse current detailed face flux and increment fluxes
+         !    !fluxy1=[SLVx(i,j,k,:),SLQx(i,j,k,1:4),SLPx(i,j,k,:)]; SLVx(i,j,k,:)=0.0_WP; SLQx(i,j,k,:)=0.0_WP; SLPx(i,j,k,:)=0.0_WP
+         !    do n=0,getSize(detailed_face_flux)-1
+         !       ! Get cell index
+         !       ind=this%cfg%get_ijk_from_lexico(getTagForIndex(detailed_face_flux,n))
+         !       ! Get separated volume moments
+         !       call getSepVMAtIndex(detailed_face_flux,n,my_SepVM)
+         !       ! Extract volume and mass data
+         !       Lvol=getVolume(my_SepVM,0); Lbar=getCentroid(my_SepVM,0); Lmass=Lvol*this%RHOLold(ind(1),ind(2),ind(3))
+         !       Gvol=getVolume(my_SepVM,1); Gbar=getCentroid(my_SepVM,1); Gmass=Gvol*this%RHOGold(ind(1),ind(2),ind(3))
+         !       ! Increment volume flux
+         !       SLVx(i,j,k,:)=SLVx(i,j,k,:)-[Lvol,Gvol,Lbar,Gbar]
+         !       ! Increment conserved variable flux
+         !       SLQx(i,j,k,:)=SLQx(i,j,k,:)-[Lmass,Gmass,Lmass*this%ILold(ind(1),ind(2),ind(3)),Gmass*this%IGold(ind(1),ind(2),ind(3)),0.0_WP,0.0_WP,0.0_WP]
+         !       ! Increment pressure flux
+         !       SLPx(i,j,k,:)=SLPx(i,j,k,:)-[Lvol*this%PLold(ind(1),ind(2),ind(3)),Gvol*this%PGold(ind(1),ind(2),ind(3))]
+         !    end do
+         !    SLQx(i,j,k,:)=SLQx(i,j,k,:)/(dt*this%dy*this%dz)
+         !    !fluxy2=[SLVx(i,j,k,:),SLQx(i,j,k,1:4),SLPx(i,j,k,:)]
+         !    !if (maxval(abs(fluxy1-fluxy2)).gt.1.0e-9_WP) then
+         !    !   print*,'crapx - ijk',i,j,k
+         !    !   print*,'crapx - dif',abs(fluxy1-fluxy2)
+         !    !   print*,'crapx - nga',fluxy1
+         !    !   print*,'crapx - irl',fluxy2
+         !    !end if
+         !    ! Clear detailed flux
+         !    call clear(detailed_face_flux)
+         ! end if
+         ! ! Y flux
+         ! if (maxval(this%iSL(i,j-1:j,k)).gt.0) then
+         !    ! Construct and project face
+         !    face(:,1)=[this%cfg%x(i+1),this%cfg%y(j  ),this%cfg%z(k  )]; face(:,5)=project(face(:,1),-dt)
+         !    face(:,2)=[this%cfg%x(i  ),this%cfg%y(j  ),this%cfg%z(k  )]; face(:,6)=project(face(:,2),-dt)
+         !    face(:,3)=[this%cfg%x(i  ),this%cfg%y(j  ),this%cfg%z(k+1)]; face(:,7)=project(face(:,3),-dt)
+         !    face(:,4)=[this%cfg%x(i+1),this%cfg%y(j  ),this%cfg%z(k+1)]; face(:,8)=project(face(:,4),-dt)
+         !    face(:,9)=0.25_WP*[sum(face(1,1:4)),sum(face(2,1:4)),sum(face(3,1:4))]; face(:,9)=project(face(:,9),-dt)
+         !    ! Form flux polyhedron
+         !    call construct(flux_polyhedron,face)
+         !    ! Add solenoidal correction
+         !    call adjustCapToMatchVolume(flux_polyhedron,V(i,j,k)*dt*this%dz*this%dx)
+         !    ! Build detailed geometric flux
+         !    call getMoments(flux_polyhedron,this%localized_separator_link(i,j,k),detailed_face_flux)
+         !    ! Traverse current detailed face flux and increment fluxes
+         !    !fluxy1=[SLVy(i,j,k,:),SLQy(i,j,k,1:4),SLPy(i,j,k,:)]; SLVy(i,j,k,:)=0.0_WP; SLQy(i,j,k,:)=0.0_WP; SLPy(i,j,k,:)=0.0_WP
+         !    do n=0,getSize(detailed_face_flux)-1
+         !       ! Get cell index
+         !       ind=this%cfg%get_ijk_from_lexico(getTagForIndex(detailed_face_flux,n))
+         !       ! Get separated volume moments
+         !       call getSepVMAtIndex(detailed_face_flux,n,my_SepVM)
+         !       ! Extract volume and mass data
+         !       Lvol=getVolume(my_SepVM,0); Lbar=getCentroid(my_SepVM,0); Lmass=Lvol*this%RHOLold(ind(1),ind(2),ind(3))
+         !       Gvol=getVolume(my_SepVM,1); Gbar=getCentroid(my_SepVM,1); Gmass=Gvol*this%RHOGold(ind(1),ind(2),ind(3))
+         !       ! Increment volume flux
+         !       SLVy(i,j,k,:)=SLVy(i,j,k,:)-[Lvol,Gvol,Lbar,Gbar]
+         !       ! Increment conserved variable flux
+         !       SLQy(i,j,k,:)=SLQy(i,j,k,:)-[Lmass,Gmass,Lmass*this%ILold(ind(1),ind(2),ind(3)),Gmass*this%IGold(ind(1),ind(2),ind(3)),0.0_WP,0.0_WP,0.0_WP]
+         !       ! Increment pressure flux
+         !       SLPy(i,j,k,:)=SLPy(i,j,k,:)-[Lvol*this%PLold(ind(1),ind(2),ind(3)),Gvol*this%PGold(ind(1),ind(2),ind(3))]
+         !    end do
+         !    SLQy(i,j,k,:)=SLQy(i,j,k,:)/(dt*this%dz*this%dx)
+         !    !fluxy2=[SLVy(i,j,k,:),SLQy(i,j,k,1:4),SLPy(i,j,k,:)]
+         !    !if (maxval(abs(fluxy1-fluxy2)).gt.1.0e-9_WP) then
+         !    !   print*,'crapy - ijk',i,j,k
+         !    !   print*,'crapy - dif',abs(fluxy1-fluxy2)
+         !    !   print*,'crapy - nga',fluxy1
+         !    !   print*,'crapy - irl',fluxy2
+         !    !end if
+         !    ! Clear detailed flux
+         !    call clear(detailed_face_flux)
+         ! end if
+         ! ! Z flux
+         ! if (maxval(this%iSL(i,j,k-1:k)).gt.0) then
+         !    ! Construct and project face
+         !    face(:,1)=[this%cfg%x(i  ),this%cfg%y(j+1),this%cfg%z(k  )]; face(:,5)=project(face(:,1),-dt)
+         !    face(:,2)=[this%cfg%x(i  ),this%cfg%y(j  ),this%cfg%z(k  )]; face(:,6)=project(face(:,2),-dt)
+         !    face(:,3)=[this%cfg%x(i+1),this%cfg%y(j  ),this%cfg%z(k  )]; face(:,7)=project(face(:,3),-dt)
+         !    face(:,4)=[this%cfg%x(i+1),this%cfg%y(j+1),this%cfg%z(k  )]; face(:,8)=project(face(:,4),-dt)
+         !    face(:,9)=0.25_WP*[sum(face(1,1:4)),sum(face(2,1:4)),sum(face(3,1:4))]; face(:,9)=project(face(:,9),-dt)
+         !    ! Form flux polyhedron
+         !    call construct(flux_polyhedron,face)
+         !    ! Add solenoidal correction
+         !    call adjustCapToMatchVolume(flux_polyhedron,W(i,j,k)*dt*this%dx*this%dy)
+         !    ! Build detailed geometric flux
+         !    call getMoments(flux_polyhedron,this%localized_separator_link(i,j,k),detailed_face_flux)
+         !    ! Traverse current detailed face flux and increment fluxes
+         !    !fluxy1=[SLVz(i,j,k,:),SLQz(i,j,k,1:4),SLPz(i,j,k,:)]; SLVz(i,j,k,:)=0.0_WP; SLQz(i,j,k,:)=0.0_WP; SLPz(i,j,k,:)=0.0_WP
+         !    do n=0,getSize(detailed_face_flux)-1
+         !       ! Get cell index
+         !       ind=this%cfg%get_ijk_from_lexico(getTagForIndex(detailed_face_flux,n))
+         !       ! Get separated volume moments
+         !       call getSepVMAtIndex(detailed_face_flux,n,my_SepVM)
+         !       ! Extract volume and mass data
+         !       Lvol=getVolume(my_SepVM,0); Lbar=getCentroid(my_SepVM,0); Lmass=Lvol*this%RHOLold(ind(1),ind(2),ind(3))
+         !       Gvol=getVolume(my_SepVM,1); Gbar=getCentroid(my_SepVM,1); Gmass=Gvol*this%RHOGold(ind(1),ind(2),ind(3))
+         !       ! Increment volume flux
+         !       SLVz(i,j,k,:)=SLVz(i,j,k,:)-[Lvol,Gvol,Lbar,Gbar]
+         !       ! Increment conserved variable flux
+         !       SLQz(i,j,k,:)=SLQz(i,j,k,:)-[Lmass,Gmass,Lmass*this%ILold(ind(1),ind(2),ind(3)),Gmass*this%IGold(ind(1),ind(2),ind(3)),0.0_WP,0.0_WP,0.0_WP]
+         !       ! Increment pressure flux
+         !       SLPz(i,j,k,:)=SLPz(i,j,k,:)-[Lvol*this%PLold(ind(1),ind(2),ind(3)),Gvol*this%PGold(ind(1),ind(2),ind(3))]
+         !    end do
+         !    SLQz(i,j,k,:)=SLQz(i,j,k,:)/(dt*this%dx*this%dy)
+         !    !fluxy2=[SLVz(i,j,k,:),SLQz(i,j,k,1:4),SLPz(i,j,k,:)]
+         !    !if (maxval(abs(fluxy1-fluxy2)).gt.1.0e-9_WP) then
+         !    !   print*,'crapz - ijk',i,j,k
+         !    !   print*,'crapz - dif',abs(fluxy1-fluxy2)
+         !    !   print*,'crapz - nga',fluxy1
+         !    !   print*,'crapz - irl',fluxy2
+         !    !end if
+         !    ! Clear detailed flux
+         !    call clear(detailed_face_flux)
+         ! end if
       end do; end do; end do
       
       ! Mass fluxes will be used to build momentum fluxes, they need to be extended by one cell on the left because of staggering

@@ -1,0 +1,29 @@
+# AMR grid
+Base nx:   32
+Base ny:   32
+Base nz:   32
+Max level: 5
+
+# Regridding parameters
+Regrid nsteps:     10
+Tagging Rec:       50
+Tagging Res:       10
+
+# EoS parameters
+Gamma: 1.4
+
+# Shock parameters
+Mach number:     1.2
+Shock location: -0.6
+
+# Viscous parameters
+Reynolds number:   5000
+Prandtl number:    0.71
+
+# Time integration
+Max dt:   5e-3
+Max CFL:  1.0
+Max time: 50
+
+# Output
+Output period: 0.1
