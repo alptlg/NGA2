@@ -9,11 +9,16 @@ Reactor : isobar
 #Initial Y N2 : 0.75
 
 # # Option 2: Fuel + Equivalence ratio (standard air: N2=0.79, O2=0.21 mole frac)
-Fuel : CH4
+Fuel : H2
 Equivalence ratio : 1.0
 
 Temperature : 1200.0
 Pressure : 100000.0
-End time : 0.1
-Time step : 1e-5
+
+# Time control (FlameMaster-style): Max time + Number of outputs; optional Equidistant : yes|no
+# Optional: Impose max time : yes|no — if no (default), may stop early after ignition + plateau (see FM T0DIsoChor).
+# Negative Max time (e.g. -0.1) => integrate to |Max time| with impose (FlameMaster-compatible).
+Max time : 10
+Number of outputs : 1000
+
 Output file : results.out
