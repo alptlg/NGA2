@@ -1,0 +1,35 @@
+# chem_reactor_0D: one 0D ignition run, read by the executable (idt.py writes inputs like this one for sweeps)
+# Run: mechs/<mech>/chem_reactor_0D.*.exe -i input_single
+
+# Reactor: isochor = constant volume (default) | isobar = constant pressure
+Reactor : isochor
+
+# Composition, option 1: fuel + oxidizer streams (mole fractions) + classical phi (as Cantera set_equivalence_ratio)
+Fuel : CY(COC*OOC) DEC COC*OOC
+Fuel mole fractions : 0.391 0.331 0.278
+Oxidizer : O2 N2
+Oxidizer mole fractions : 1.0 3.76
+Equivalence ratio : 1.0
+# Composition, option 2 (ignored when Equivalence ratio is given): one line per species, renormalized; X or Y, not both
+#Initial X O2 : 0.21
+#Initial X N2 : 0.79
+#Initial Y <species> : ...         (mass fractions instead)
+
+Temperature : 1000.0               # K
+Pressure : 101325.0                # Pa
+
+# Ignition delay = peak dT/dt between consecutive CVODE steps with t >= IDT min time and T > T0 + IDT min rise,
+# searched until T > T0 + IDT window. The values below are the code defaults.
+Max time : 1.0e4                   # s
+IDT min time : 1.0e-6              # s
+IDT min rise : 55.0                # K
+IDT window : 400.0                 # K
+# End of run: flamemaster (default; stops after ignition + plateau) | fixed (max(4 IDT, 0.5 s)) | maxtime
+End mode : flamemaster
+
+Result file : idt.res              # IDT, end state, CPU (key value)
+Output file : results.out          # optional trajectory: time, Y_i, T, P, rho
+Number of outputs : 1000           # trajectory rows kept (FlameMaster buffer)
+#Output mole fractions : .true.    # trajectory in mole fractions instead of mass fractions
+#CVODE rtol : 1.0e-10
+#CVODE atol : 1.0e-20
