@@ -1,0 +1,50 @@
+# chem_reactor_0D_template: ignition-delay STUDY file, read by idt.py (NGA2 input format). The executable itself
+# reads one-run files like input_single (idt.py writes those for every point).
+# Run: python idt.py all          (another study file: python idt.py all -i <file>)
+# Paths are relative to this file. Lists are space separated.
+# Example study: Li-ion battery electrolyte solvent blends (EC, DMC, EMC, DEC in air) with the LIB electrolyte
+# surrogate mechanism of Kanayama et al. (Combust. Flame), shipped in NGA2/tools/scripts/chemistry/kinetics.
+# Replace with your study; put your own mechanisms in mechs/<name>/.
+
+# Study
+Name : EC/DMC/EMC/DEC blends
+Output directory : results
+Reference mechanism : detailed          # errors and deviations are measured against this mechanism
+Workers : 6                             # simulations run in parallel (default 6)
+
+# Mechanisms -- Mechanism <name> : <Cantera YAML> [<ARCANE QSS Fortran>]; put the files in mechs/<name>/
+Mechanism detailed : ../../tools/scripts/chemistry/kinetics/LIB_e_detailed.yaml
+#Mechanism skeletal : mechs/skeletal/skeletal.yaml
+#Mechanism reduced : mechs/reduced/reduced.yaml mechs/reduced/reduced.f90
+
+# Mixtures -- Fuel <name> : <species> <mole fraction> ... (fuel stream); equivalence ratio as Cantera
+Fuel LP30 : CY(COC*OOC) 0.502 COC*OOC 0.498
+Fuel LP40 : CY(COC*OOC) 0.573 DEC 0.427
+Fuel LP50 : CY(COC*OOC) 0.542 CCOC*OOC 0.458
+Fuel LP71 : CY(COC*OOC) 0.391 DEC 0.331 COC*OOC 0.278
+Oxidizer : O2 1.0 N2 3.76               # air
+Label CY(COC*OOC) : EC                  # short names used in figure headers
+Label COC*OOC : DMC
+Label CCOC*OOC : EMC
+
+# Sweep
+Reactor : isochor                       # isochor (constant volume) | isobar (constant pressure)
+Pressures : 1.0 5.0                     # atm (the one-run file input_single takes Pressure in Pa)
+Equivalence ratios : 0.5 1.0 1.5
+1000/T0 range : 0.5 2.0 0.05            # from to step [1000/K], i.e. T0 = 2000 K ... 500 K (or 1000/T0 : <list>)
+
+# Ignition delay = time of peak dT/dt with t >= IDT min time and T > T0 + IDT min rise, until T > T0 + IDT window
+Max time : 1.0e4                        # s
+IDT min time : 1.0e-6                   # s
+IDT min rise : 55.0                     # K
+IDT window : 400.0                      # K
+End mode : flamemaster                  # flamemaster (stop at a T plateau after 3 IDT) | fixed (max(4 IDT, 0.5 s)) | maxtime
+CVODE rtol : 1.0e-10
+CVODE atol : 1.0e-20                    # keep ~1e-20: low-temperature radicals are that small
+Run timeout : 7200.0                    # s, wall-clock limit per run
+
+# End-state figures: one set per fuel x pressure x equivalence ratio (remove a line = all sweep values)
+End state fuels : LP30 LP40 LP50 LP71
+End state pressures : 1.0 5.0
+End state equivalence ratios : 0.5 1.0 1.5
+End state x_min : 1.0e-10               # species below this mole fraction are not compared
