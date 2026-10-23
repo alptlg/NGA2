@@ -1,0 +1,44 @@
+# chem_reactor_1D_lfs: laminar flame speed STUDY file, read by lfs.py (NGA2 input format). The executable itself
+# reads one-flame files like input_single (lfs.py writes those for every flame).
+# Run: python lfs.py all          (another study file: python lfs.py all -i <file>)
+# Paths are relative to this file. Lists are space separated.
+# Example study: Li-ion battery electrolyte solvent blends (EC, DMC, EMC, DEC in air) with the LIB electrolyte
+# surrogate mechanism of Kanayama et al. (Combust. Flame), shipped in NGA2/tools/scripts/chemistry/kinetics.
+# Replace with your study; put your own mechanisms in mechs/<name>/.
+
+# Study
+Name : EC/DMC/EMC/DEC blends
+Output directory : results
+Reference mechanism : detailed          # seeds the other mechanisms; errors are measured against it
+Workers : 6                             # flames solved in parallel (default 6; ~0.4 GB each for 160 species)
+
+# Mechanisms -- Mechanism <name> : <Cantera YAML> [<ARCANE QSS Fortran>]; put the files in mechs/<name>/
+Mechanism detailed : ../../tools/scripts/chemistry/kinetics/LIB_e_detailed.yaml
+#Mechanism skeletal : mechs/skeletal/skeletal.yaml
+#Mechanism reduced : mechs/reduced/reduced.yaml mechs/reduced/reduced.f90
+
+# Mixtures -- Fuel <name> : <species> <mole fraction> ... (fuel stream); equivalence ratio as Cantera
+Fuel LP30 : CY(COC*OOC) 0.502 COC*OOC 0.498
+Fuel LP40 : CY(COC*OOC) 0.573 DEC 0.427
+Fuel LP50 : CY(COC*OOC) 0.542 CCOC*OOC 0.458
+Fuel LP71 : CY(COC*OOC) 0.391 DEC 0.331 COC*OOC 0.278
+Oxidizer : O2 1.0 N2 3.76               # air
+Label CY(COC*OOC) : EC                  # short names used in figure headers
+Label COC*OOC : DMC
+Label CCOC*OOC : EMC
+
+# Sweep
+Pressures : 1.0 5.0                     # atm
+Equivalence ratio range : 0.5 2.0 0.1   # from to step (or Equivalence ratios : <list>)
+Unburnt temperature : 300.0             # K
+
+# Flame solver
+Refine ratio : 3.0                      # grid refinement criteria (see README)
+Refine slope : 0.08
+Refine curve : 0.08
+Refine prune : 0.05
+Max grid points : 400
+Convection scheme : upwind              # upwind (= Cantera) or second-order (much less grid-dependent S_L, see README)
+Cold start widths : 0.04 0.08 0.12      # m, domain widths tried for cold starts
+Max flame speed : 200.0                 # cm/s, larger values are rejected as unphysical
+Run timeout : 5400.0                    # s per flame

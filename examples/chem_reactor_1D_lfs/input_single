@@ -1,0 +1,32 @@
+# chem_reactor_1D_lfs: one freely propagating flame, read by the executable (lfs.py writes inputs like this one)
+# Run: mechs/<mech>/chem_reactor_1D_lfs.*.exe -i input_single
+
+# Unburnt gas, option 1: fuel + oxidizer streams (mole fractions) + classical phi (as Cantera set_equivalence_ratio)
+Fuel : CY(COC*OOC) COC*OOC
+Fuel mole fractions : 0.502 0.498
+Oxidizer : O2 N2                   # default: air (O2 N2 with mole fractions 1 3.76)
+Oxidizer mole fractions : 1.0 3.76
+Equivalence ratio : 1.0
+# Unburnt gas, option 2 (ignored when Equivalence ratio is given): one line per species, renormalized; X or Y, not both
+#Initial X O2 : 0.21
+#Initial X N2 : 0.79
+Temperature : 300.0                # K (unburnt)
+Pressure : 101325.0                # Pa
+
+# Start: cold (straight-line profiles to the adiabatic equilibrium over this width) or from a converged flame
+Width : 0.04                       # m
+#Initial profile : profile.dat     # line 1: number of points n; then n rows z u T Y_1..Y_nS (mechanism order).
+                                   # A Solution file has a header line instead of n: lfs.py converts it for seeds.
+
+# Solver (these are the code defaults; lfs.py sets T upper bound to 2 x the lowest species T_max)
+Convection scheme : upwind         # upwind (as Cantera) or second-order
+Refine ratio : 3.0
+Refine slope : 0.08
+Refine curve : 0.08
+Refine prune : 0.05
+Max grid points : 400
+T upper bound : 4000.0             # K
+
+Result file : lfs.res              # status, S_L, grid points, CPU, equilibrium state (key value)
+Solution file : flame.dat          # converged flame: z u T Y_k
+Verbose : 0                        # 1: solver progress, 2: also Newton diagnostics
